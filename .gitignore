@@ -1,0 +1,12 @@
+# 虚拟环境与缓存
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 密钥（模板见 .env.example）
+.env
+
+# 本机开发配置、导出的讨论记录
+.claude/
+exports/

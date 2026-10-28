@@ -1,0 +1,48 @@
+# 演示配置：全部使用假模型，不需要任何 API key，用来体验界面。
+# 启动：GROUPCHAT_CONFIG=config.demo.yaml ./run.sh
+providers:
+  mock:
+    type: mock
+
+# 模板里引用的模型别名全部指向假模型
+models:
+  deepseek-pro: {provider: mock, model: mock-pro}
+  deepseek-flash: {provider: mock, model: mock-flash}
+  mimo-flash: {provider: mock, model: mock-mimo}
+  glm: {provider: mock, model: mock-glm}
+
+search:
+  provider: none
+
+chat:
+  scheduler: moderator
+  max_turns: 6
+  context_messages: 40
+  reply_max_chars: 200
+  max_tokens: 800
+  moderator:
+    provider: mock
+    model: mock
+
+agents:
+  - name: 乐观派
+    avatar: 🌞
+    color: "#f59e0b"
+    bio: 热情的创业者，总能看到机会
+    provider: mock
+    model: mock-optimist
+    persona: 你天生乐观。
+  - name: 杠精
+    avatar: 🦔
+    color: "#ef4444"
+    bio: 逻辑控，专挑漏洞
+    provider: mock
+    model: mock-critic
+    persona: 你专挑漏洞。
+  - name: 务实派
+    avatar: 🔧
+    color: "#10b981"
+    bio: 工程师，只关心怎么落地
+    provider: mock
+    model: mock-engineer
+    persona: 你只关心落地。

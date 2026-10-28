@@ -1,0 +1,122 @@
+# ============================================================
+#  AI 群聊配置。改完后在网页上点「重新加载配置」即可生效，无需重启。
+# ============================================================
+
+# ---------- 模型服务 ----------
+# type: openai  —— 任何兼容 OpenAI 接口的服务（OpenRouter / DeepSeek / Kimi / 通义 / Ollama ...）
+# type: mock    —— 假模型，不花钱，用来测试界面
+# api_key_env 写环境变量名（放在 .env 里），api_key 可直接写死（仅限本地用）
+providers:
+  openrouter:
+    type: openai
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+  deepseek:
+    type: openai
+    base_url: https://api.deepseek.com
+    api_key_env: DEEPSEEK_API_KEY
+  mimo:                       # 第三方中转站（new-api），也提供 GLM / DeepSeek
+    type: openai
+    base_url: https://mimo.ezlook.top/v1
+    api_key_env: MIMO_API_KEY
+  ollama:
+    type: openai
+    base_url: http://localhost:11434/v1
+    api_key: ollama
+  mock:
+    type: mock
+
+# ---------- 模型别名 ----------
+# 成员、主持人、模板角色都可以用 use: 别名 引用这里的模型，换模型只需改一处。
+# 条目里自己写的字段（如 temperature、max_tokens）优先于别名里的。
+models:
+  deepseek-pro:               # 推理模型：会先思考再回答，思考也占 token
+    provider: deepseek
+    model: deepseek-v4-pro
+    max_tokens: 3000
+  deepseek-flash:
+    provider: deepseek
+    model: deepseek-flash
+  mimo-flash:
+    provider: mimo
+    model: mimo-v2.6-flash
+    extra_body: {thinking: {type: disabled}}   # 不关的话偶尔会思考到 token 用完、回复为空
+  glm:
+    provider: mimo
+    model: glm-5.3
+    max_tokens: 1500
+
+# ---------- 联网搜索 ----------
+# provider: duckduckgo（免费，无需 key）| tavily | bocha | none
+search:
+  provider: duckduckgo
+  # api_key_env: BOCHA_API_KEY
+  max_results: 5
+  enabled: true               # 网页上联网开关的默认值
+  # 生成搜索关键词的模型，不填则用主持人的模型
+  planner:
+    use: deepseek-flash
+
+# ---------- 群聊规则 ----------
+chat:
+  # 选下一个发言者的策略：round_robin（轮流）| random（随机）| moderator（AI 主持人决定）
+  # 无论哪种策略，消息里 @某人 都会让被点名的人优先回复
+  scheduler: moderator
+  # 你每发一条消息后，AI 们最多连续发言几次
+  max_turns: 8
+  # 每个 AI 能看到最近多少条消息
+  context_messages: 40
+  # 建议每次发言字数（写进提示词）
+  reply_max_chars: 200
+  # 每次发言最多生成的 token 数
+  max_tokens: 800
+  # 主持人（scheduler=moderator 时使用），建议用便宜快速的模型
+  moderator:
+    use: deepseek-flash
+    # 至少讨论几轮之后主持人才能宣布结束（默认 = 成员数）
+    # min_turns: 4
+
+# ---------- 群成员（自由群聊模板使用；其他模板在 templates/ 目录里定义自己的角色）----------
+# 模型：use: 别名，或者直接写 provider + model
+# 可选字段：max_tokens（覆盖 chat.max_tokens）、extra_body（透传给 API 的额外参数）、
+#           in_free_chat: false（不参与自由讨论，适合书记员之类的角色）
+agents:
+  - name: 乐观派
+    avatar: 🌞
+    color: "#f59e0b"
+    bio: 热情的创业者，总能看到机会
+    use: mimo-flash
+    temperature: 0.9
+    persona: |
+      你是一位连续创业者，天生乐观，擅长发现机会和可能性。
+      你说话热情、有感染力，喜欢举成功案例。但你不是盲目乐观，会认真回应质疑。
+
+  - name: 杠精
+    avatar: 🦔
+    color: "#ef4444"
+    bio: 逻辑控，专挑漏洞
+    use: deepseek-pro
+    temperature: 0.7
+    persona: |
+      你是一个严谨的批判性思考者，专门找别人观点里的逻辑漏洞、隐含假设和风险。
+      你说话犀利直接，但讲道理、对事不对人。如果别人说得对，你也会承认。
+
+  - name: 务实派
+    avatar: 🔧
+    color: "#10b981"
+    bio: 工程师，只关心怎么落地
+    use: deepseek-flash
+    temperature: 0.6
+    persona: |
+      你是一位资深工程师和项目经理，只关心"具体怎么做"。
+      你会把抽象讨论拉回到可执行的步骤、成本和时间线上，不喜欢空谈。
+
+  - name: 跨界者
+    avatar: 🎨
+    color: "#8b5cf6"
+    bio: 文理兼修，爱用类比
+    use: glm
+    temperature: 1.0
+    persona: |
+      你有哲学、艺术和生物学背景，喜欢从意想不到的角度看问题，善用类比和跨领域的例子。
+      你经常提出别人没想到的视角，偶尔有点天马行空。

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>AI 群聊</title>
+  <meta name="description" content="让多个不同人设、不同模型的 AI 在一个群里讨论你的议题。">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111'/%3E%3Ccircle cx='11' cy='16' r='3' fill='%23fff'/%3E%3Ccircle cx='21' cy='16' r='3' fill='%23fff' opacity='.55'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.1.0/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.1.0/index.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+</head>
+<body>
+  <a class="skip" href="#input">跳到输入框</a>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="群设置">
+      <header class="sidebar-head stagger">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"><i class="ph-fill ph-chats-circle"></i></span>
+          <h1>AI 群聊</h1>
+        </div>
+        <span class="conn" id="conn" role="status" aria-label="连接状态" title="未连接"></span>
+      </header>
+
+      <section class="panel stagger" aria-labelledby="h-template">
+        <h2 id="h-template">讨论模板</h2>
+        <div class="select-wrap">
+          <select id="template" aria-labelledby="h-template"></select>
+          <i class="ph ph-caret-up-down" aria-hidden="true"></i>
+        </div>
+        <p class="desc" id="template-desc"></p>
+        <ol class="phases" id="phases"></ol>
+      </section>
+
+      <section class="panel stagger" aria-labelledby="h-members">
+        <h2 id="h-members">群成员 <span class="count" id="member-count"></span></h2>
+        <ul class="members" id="members"></ul>
+      </section>
+
+      <section class="panel stagger" aria-labelledby="h-rules">
+        <h2 id="h-rules">讨论规则</h2>
+        <label class="field">
+          <span class="field-label">发言方式</span>
+          <span class="select-wrap compact">
+            <select id="scheduler"></select>
+            <i class="ph ph-caret-up-down" aria-hidden="true"></i>
+          </span>
+        </label>
+        <label class="field">
+          <span class="field-label">自由讨论每次最多</span>
+          <span class="stepper"><input id="max-turns" type="number" min="1" max="50" inputmode="numeric"><span>次</span></span>
+        </label>
+        <label class="field">
+          <span class="field-label"><i class="ph ph-globe-simple" aria-hidden="true"></i>联网搜索 <span class="tag" id="search-label"></span></span>
+          <input id="search" type="checkbox" class="switch" role="switch">
+        </label>
+      </section>
+
+      <section class="actions stagger" aria-label="操作">
+        <a id="btn-export" class="btn ghost" href="/api/export" download><i class="ph ph-download-simple" aria-hidden="true"></i>导出 Markdown</a>
+        <button id="btn-reload" class="btn ghost" type="button"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i>重新加载配置</button>
+        <button id="btn-clear" class="btn ghost danger" type="button"><i class="ph ph-trash" aria-hidden="true"></i>清空聊天</button>
+      </section>
+    </aside>
+    <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+    <main class="chat">
+      <header class="chat-head" id="chat-head">
+        <button class="menu" id="btn-menu" type="button" aria-label="打开设置" aria-expanded="false" aria-controls="sidebar">
+          <span></span><span></span>
+        </button>
+        <div class="title">
+          <strong id="chat-title">讨论群</strong>
+          <span class="status" id="status-text">空闲</span>
+        </div>
+      </header>
+
+      <div class="messages" id="messages" aria-live="polite">
+        <section class="empty" id="empty">
+          <div class="empty-icon" id="empty-icon" aria-hidden="true">💬</div>
+          <h2 id="empty-title">开始一场讨论</h2>
+          <p id="empty-text">提一个问题，看看群里的 AI 们怎么讨论。</p>
+          <div class="examples" id="examples"></div>
+          <p class="hint"><i class="ph ph-info" aria-hidden="true"></i>讨论进行中也可以随时插话，用 @名字 可以点名某位成员。</p>
+        </section>
+      </div>
+
+      <footer class="composer">
+        <div class="mention-pop" id="mention-pop" role="listbox" hidden></div>
+        <div class="composer-box">
+          <textarea id="input" rows="1" aria-label="消息" placeholder="说点什么…"></textarea>
+          <div class="composer-bar">
+            <span class="kbd-hint">Enter 发送 · Shift + Enter 换行</span>
+            <div class="composer-btns">
+              <button id="btn-continue" class="btn ghost" type="button"><i class="ph ph-play" aria-hidden="true"></i>继续讨论</button>
+              <button id="btn-stop" class="btn ghost danger" type="button" hidden><i class="ph-fill ph-stop" aria-hidden="true"></i>停止</button>
+              <button id="btn-send" class="btn primary" type="button"><i class="ph ph-paper-plane-right" aria-hidden="true"></i>发送</button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <dialog class="confirm" id="confirm">
+    <form method="dialog">
+      <h2 id="confirm-title">确认</h2>
+      <p id="confirm-text"></p>
+      <div class="confirm-btns">
+        <button class="btn ghost" value="cancel" type="submit">取消</button>
+        <button class="btn primary danger-fill" value="ok" type="submit" id="confirm-ok">确定</button>
+      </div>
+    </form>
+  </dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
